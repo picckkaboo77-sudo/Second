@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dhikr</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d2e2b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dhikr">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#0d2e2b;--card:#143b37;--gold:#c9a227;--ink:#f3efe4;--dim:#b9c9c3;--line:rgba(243,239,228,.12);
+padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,Segoe UI,sans-serif}
+#home{height:100%;overflow-y:auto;padding:24px 18px 90px}
+h1{font-size:28px;margin:0 0 20px}
+.bar{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;cursor:pointer}
+.bar:active{border-color:var(--gold)}
+.name{font-size:16px}.count{font-size:20px;color:var(--gold);text-align:right}
+.sub{font-size:12px;color:var(--dim)}
+#add{position:fixed;left:18px;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--gold);color:#17251f;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:600}
+#bd{position:fixed;inset:0;background:rgba(6,20,18,.7);display:none;align-items:flex-end;z-index:30}
+#bd.open{display:flex}
+#modal{background:var(--card);width:100%;border-radius:16px 16px 0 0;padding:18px 18px calc(20px + env(safe-area-inset-bottom,0px))}
+#modal input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:11px;margin-bottom:10px;font-size:15px}
+.tc{display:flex;gap:8px;margin-bottom:10px}
+.tc button{flex:1;padding:9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--dim)}
+.tc button.on{border-color:var(--gold);color:var(--gold)}
+#ma{display:flex;gap:8px}#ma button{flex:1;padding:12px;border-radius:10px;border:0;font-size:15px}
+#cn{background:transparent;color:var(--dim);border:1px solid var(--line) !important}
+#sv{background:var(--gold);color:#17251f;font-weight:600}
+#ctr{position:fixed;inset:0;background:var(--bg);transform:translateY(100%);transition:transform .3s;z-index:20;display:flex;flex-direction:column}
+#ctr.open{transform:translateY(0)}
+#ch{padding:calc(14px + env(safe-area-inset-top,0px)) 18px 6px;display:flex;justify-content:space-between}
+#ch button{background:none;border:0;color:var(--dim);font-size:15px}
+#tt{text-align:center;padding:2px 18px 8px;font-size:13px;color:var(--dim)}
+#cd{text-align:center;font-weight:700;font-size:58px;color:var(--ink)}
+#tl{text-align:center;font-size:13px;color:var(--dim);height:16px;margin-top:4px}
+#sh{text-align:center;font-size:12px;color:var(--dim);opacity:.7;margin-top:8px}
+#so{flex:1;position:relative;margin-top:6px;-webkit-mask-image:linear-gradient(180deg,transparent,#000 20%,#000 80%,transparent);mask-image:linear-gradient(180deg,transparent,#000 20%,#000 80%,transparent)}
+#cm{position:absolute;left:24px;right:24px;top:50%;transform:translateY(-50%);height:54px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);pointer-events:none}
+#sz{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch}
+#sz::-webkit-scrollbar{display:none}
+.tk{height:54px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;color:var(--dim);opacity:.4;font-size:20px}
+</style></head><body>
+<div id="home"><h1>Dhikr</h1><div id="list"></div></div>
+<button id="add">+ Add dhikr</button>
+<div id="bd"><div id="modal">
+<input id="nm" placeholder="Name (e.g. SubhanAllah)" maxlength="40">
+<div class="tc"><button id="cc" class="on">Set a number</button><button id="ci">Infinity</button></div>
+<input id="tg" type="number" inputmode="numeric" placeholder="Target (e.g. 33)" min="1">
+<div id="ma"><button id="cn">Cancel</button><button id="sv">Save</button></div>
+</div></div>
+<div id="ctr"><div id="ch"><button id="bk">‹ Back</button><button id="rs">Reset</button></div>
+<div id="tt"></div><div id="cd">0</div><div id="tl"></div><div id="sh">scroll to count</div>
+<div id="so"><div id="cm"></div><div id="sz"></div></div></div>
+<script>
+(function(){
+var K='dhikr-v1',D=[{id:'a',name:'Alhamdulillah',target:33,count:0},{id:'b',name:'SubhanAllah',target:33,count:0},{id:'c',name:'Allahu Akbar',target:null,count:0}];
+function L(){try{var r=localStorage.getItem(K);var p=r&&JSON.parse(r);return(Array.isArray(p)&&p.length)?p:D.slice()}catch(e){return D.slice()}}
+function S(){try{localStorage.setItem(K,JSON.stringify(I))}catch(e){}}
+var I=L(),active=null,inf=false;
+var list=document.getElementById('list'),add=document.getElementById('add'),bd=document.getElementById('bd'),
+nm=document.getElementById('nm'),tg=document.getElementById('tg'),cc=document.getElementById('cc'),ci=document.getElementById('ci'),
+cn=document.getElementById('cn'),sv=document.getElementById('sv'),ctr=document.getElementById('ctr'),bk=document.getElementById('bk'),
+rs=document.getElementById('rs'),tt=document.getElementById('tt'),cd=document.getElementById('cd'),tl=document.getElementById('tl'),sz=document.getElementById('sz');
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function render(){
+list.innerHTML='';
+I.forEach(function(it){
+var b=document.createElement('div');b.className='bar';
+b.innerHTML='<div><div class="name">'+esc(it.name)+'</div><div class="sub">'+(it.target?'of '+it.target:'no limit')+'</div></div><div class="count">'+it.count+'</div>';
+b.onclick=function(){open(it.id)};
+list.appendChild(b);
+});
+}
+add.onclick=function(){nm.value='';tg.value='';inf=false;cc.className='on';ci.className='';tg.style.display='';bd.className='open';};
+cn.onclick=function(){bd.className=''};
+cc.onclick=function(){inf=false;cc.className='on';ci.className='';tg.style.display=''};
+ci.onclick=function(){inf=true;ci.className='on';cc.className='';tg.style.display='none'};
+sv.onclick=function(){
+var n=nm.value.trim();if(!n){nm.focus();return}
+var t=inf?null:(parseInt(tg.value,10)||33);
+I.push({id:'x'+Date.now(),name:n,target:t,count:0});S();render();bd.className='';
+};
+var U=56,N=401,M=Math.floor(N/2),last=M;
+function build(){sz.innerHTML='';var f=document.createDocumentFragment();for(var i=0;i<N;i++){var t=document.createElement('div');t.className='tk';t.textContent='·';f.appendChild(t)}sz.appendChild(f)}
+function open(id){active=id;var it=I.find(function(i){return i.id===id});if(!it)return;tt.textContent=it.name;build();last=M;sz.scrollTop=M*U;upd(it);ctr.className='open'}
+bk.onclick=function(){ctr.className='';render()};
+rs.onclick=function(){var it=I.find(function(i){return i.id===active});if(!it)return;it.count=0;S();upd(it);last=M;sz.scrollTop=M*U};
+function upd(it){cd.textContent=it.count;if(it.target){tl.textContent=it.count>=it.target?'Complete — '+it.target+' reached':(it.target-it.count)+' to go'}else{tl.textContent='no limit'}}
+var pend=false;
+sz.addEventListener('scroll',function(){
+if(pend)return;pend=true;
+requestAnimationFrame(function(){
+pend=false;var it=I.find(function(i){return i.id===active});if(!it)return;
+var idx=Math.round(sz.scrollTop/U),d=idx-last;
+if(d!==0){it.count=Math.max(0,it.count+d);last=idx;upd(it);S()}
+if(idx<40||idx>N-40){sz.scrollTop=M*U;last=M}
+});
+},{passive:true});
+render();
+})();
+</script></body></html>
